@@ -74,17 +74,21 @@ def init_db():
         
         defaults = {
             "target_platform": "both", # 'bale', 'telegram', or 'both'
-            "bale_bot_token": "2023616365:J9T89Cz1N7jkj1SKFXWKRrfEIugIjqPrt0w",
-            "bale_chat_ids": "4909719495, 5677988653",
+            "dashboard_auth_enabled": "true",
+            "dashboard_username": "admin",
+            "dashboard_password": "admin123",
+            "bale_bot_token": "",
+            "bale_chat_ids": "",
             "bale_last_update_id": "0",
-            "telegram_bot_token": "6035665773:AAHWj0nhI-TN5YAZeIwf4_4BJjsVWde6IkI",
-            "telegram_chat_ids": "369523412",
+            "telegram_bot_token": "",
+            "telegram_chat_ids": "",
             "telegram_last_update_id": "0",
             "send_to_all_groups": "true",
 
-            "instagram_username": "ajksdjasdklaskdl",
-            "instagram_password": "Asaljoon82@@",
-            "instagram_session_id": "41411171535%3Ak5M6WVHGrl8nsR%3A1%3AAYiDl7IiHWekC84-JB9ENlHkr4McEfLbCIwmJ1HBuw",
+            "instagram_username": "",
+            "instagram_password": "",
+            "instagram_session_id": "",
+
 
             "auto_send_enabled": "true",
             "filter_keywords": "",

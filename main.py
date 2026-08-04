@@ -27,8 +27,16 @@ import telegram_bot as tg
 security = HTTPBasic()
 
 def verify_auth(credentials: HTTPBasicCredentials = Depends(security)):
-    correct_username = secrets.compare_digest(credentials.username, "shahab")
-    correct_password = secrets.compare_digest(credentials.password, "5584")
+    settings = db.get_settings()
+    auth_enabled = settings.get("dashboard_auth_enabled", "true") == "true"
+    if not auth_enabled:
+        return "anonymous"
+        
+    expected_user = settings.get("dashboard_username", "admin")
+    expected_pass = settings.get("dashboard_password", "admin123")
+
+    correct_username = secrets.compare_digest(credentials.username, expected_user)
+    correct_password = secrets.compare_digest(credentials.password, expected_pass)
     if not (correct_username and correct_password):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -47,6 +55,9 @@ scheduler = BackgroundScheduler()
 
 class SettingsUpdate(BaseModel):
     target_platform: Optional[str] = "bale" # 'bale', 'telegram', or 'both'
+    dashboard_auth_enabled: Optional[str] = "true"
+    dashboard_username: Optional[str] = "admin"
+    dashboard_password: Optional[str] = "admin123"
     bale_bot_token: Optional[str] = ""
     bale_chat_ids: Optional[str] = ""
     telegram_bot_token: Optional[str] = ""
@@ -55,6 +66,7 @@ class SettingsUpdate(BaseModel):
     instagram_username: Optional[str] = ""
     instagram_password: Optional[str] = ""
     instagram_session_id: Optional[str] = ""
+
     auto_send_enabled: Optional[str] = "false"
     filter_keywords: Optional[str] = ""
     min_likes: Optional[str] = "0"

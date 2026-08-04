@@ -172,12 +172,40 @@
             <section id="tab-settings" class="tab-content">
                 <div class="settings-container">
                     <form id="settings-form">
+                        <!-- Dashboard UI Security & Auth -->
+                        <div class="glass-card settings-section">
+                            <div class="section-title">
+                                <h3>Dashboard UI Security & Auth</h3>
+                            </div>
+                            <div class="toggle-group" style="margin-bottom: 12px;">
+                                <label class="switch">
+                                    <input type="checkbox" id="dashboard_auth_enabled">
+                                    <span class="slider round"></span>
+                                </label>
+                                <div class="toggle-label">
+                                    <strong>Require Authentication for Web UI</strong>
+                                    <span>Enable HTTP Basic Auth login prompt when accessing dashboard</span>
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group flex-1">
+                                    <label for="dashboard_username">Dashboard Username</label>
+                                    <input type="text" id="dashboard_username" placeholder="e.g. admin">
+                                </div>
+                                <div class="form-group flex-1">
+                                    <label for="dashboard_password">Dashboard Password</label>
+                                    <input type="password" id="dashboard_password" placeholder="e.g. admin123">
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Platform Target Selection -->
                         <div class="glass-card settings-section">
                             <div class="section-title">
                                 <svg viewBox="0 0 24 24" width="22" height="22" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
                                 <h3>Target Platform Selection</h3>
                             </div>
+
                             <div class="form-group">
                                 <label for="target_platform">Destination Messenger</label>
                                 <select id="target_platform">

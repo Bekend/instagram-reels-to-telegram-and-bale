@@ -270,7 +270,11 @@ async function saveSettings(e) {
     if (e && e.preventDefault) e.preventDefault();
     const payload = {
         target_platform: document.getElementById('target_platform') ? document.getElementById('target_platform').value : "bale",
+        dashboard_auth_enabled: document.getElementById('dashboard_auth_enabled') && document.getElementById('dashboard_auth_enabled').checked ? 'true' : 'false',
+        dashboard_username: document.getElementById('dashboard_username') ? document.getElementById('dashboard_username').value : "admin",
+        dashboard_password: document.getElementById('dashboard_password') ? document.getElementById('dashboard_password').value : "admin123",
         bale_bot_token: document.getElementById('bale_bot_token') ? document.getElementById('bale_bot_token').value : "",
+
         bale_chat_ids: document.getElementById('bale_chat_ids') ? document.getElementById('bale_chat_ids').value : "",
         telegram_bot_token: document.getElementById('telegram_bot_token') ? document.getElementById('telegram_bot_token').value : "",
         telegram_chat_ids: document.getElementById('telegram_chat_ids') ? document.getElementById('telegram_chat_ids').value : "",
