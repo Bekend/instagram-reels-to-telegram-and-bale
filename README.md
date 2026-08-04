@@ -108,8 +108,9 @@ The FastAPI web server will start at **`http://localhost:8000`**.
 
 Access the web dashboard at `http://localhost:8000` (or `http://YOUR_VPS_IP/`):
 
-- **Default Username**: `shahab`
-- **Default Password**: `5584`
+- **Default Username**: `admin`
+- **Default Password**: `admin123` *(Configurable in Dashboard Settings)*
+
 
 From the Dashboard, you can:
 - View live delivery counts and system status.
