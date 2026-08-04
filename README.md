@@ -36,7 +36,8 @@ Featuring a modern **FastAPI Web Dashboard**, **Per-Chat Operational Control**, 
 
 ### 🔒 Modern Web Dashboard UI
 - **Real-Time Control Panel**: A glassmorphism Web UI to monitor system status, view active queues, toggle broadcast targets, and manage logs.
-- **HTTP Basic Authentication**: Secured access requiring username (`shahab`) and password (`5584`).
+- **HTTP Basic Authentication**: Optional, customizable login security (configurable via Web UI Settings).
+
 
 ---
 

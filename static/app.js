@@ -31,7 +31,8 @@ async function safeFetchJson(url, options = {}) {
     try {
         const res = await fetch(url, options);
         if (res.status === 401) {
-            console.warn('Unauthorized: Enter basic auth credentials (shahab / 5584)');
+            console.warn('Unauthorized: Please enter dashboard auth credentials');
+
             return null;
         }
         const contentType = res.headers.get('content-type') || '';
