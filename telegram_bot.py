@@ -320,13 +320,15 @@ def process_telegram_commands(bot_token: str):
             if not text:
                 continue
                 
-            if text in ["/help", "help", "راهنما"]:
+            cmd = text.split()[0].split("@")[0].strip().lower() if text else ""
+                
+            if cmd in ["/help", "help", "راهنما"]:
                 reply_url = get_tg_url(bot_token, "sendMessage")
                 help_text = (
                     "📖 <b>Telegram Bot Commands Help</b>\n\n"
                     "• <b>Glass Buttons</b>: Click ❤️ Like or 💬 Top 10 Comments below any post\n"
-                    "• <b>/begin</b>: Start auto-forwarding & Instagram searching\n"
-                    "• <b>/stop</b>: Fully stop auto-forwarding & Instagram searching\n"
+                    "• <b>/begin</b>: Start auto-forwarding & Instagram searching for this chat\n"
+                    "• <b>/stop</b>: Stop auto-forwarding for this specific chat\n"
                     "• <b>/send</b>: Force send 1 new Reel immediately\n"
                     "• <b>/skip</b>: Skip rest break and resume active sending\n"
                     "• <b>/comments</b> or 🙏: Reply with real top 10 comments\n"
@@ -338,12 +340,13 @@ def process_telegram_commands(bot_token: str):
                 if msg_id: payload["reply_to_message_id"] = msg_id
                 requests.post(reply_url, json=payload)
 
-            elif text in ["/begin", "/start", "begin", "start"]:
+            elif cmd in ["/begin", "/start", "begin", "start", "شروع"] or text in ["/begin", "/start", "begin", "start", "شروع"]:
                 db.update_settings({"auto_send_enabled": "true"})
-                chat_title = message.get("chat", {}).get("title") or message.get("chat", {}).get("first_name") or f"Group {chat_id}"
+                chat_obj = msg.get("chat", {}) if msg else {}
+                chat_title = chat_obj.get("title") or chat_obj.get("first_name") or f"Group {chat_id}"
                 if chat_id:
                     db.update_chat_selection(chat_id, True, title=chat_title, platform="telegram")
-                db.add_log(f"Telegram command /begin received for chat {chat_id}.", level="SUCCESS")
+                db.add_log(f"Telegram command /begin received for chat {chat_id} ({chat_title}).", level="SUCCESS")
                 
                 reply_url = get_tg_url(bot_token, "sendMessage")
                 reply_text = "✅ <b>Broadcast enabled for this chat!</b>"
@@ -351,11 +354,12 @@ def process_telegram_commands(bot_token: str):
                 if msg_id: payload["reply_to_message_id"] = msg_id
                 requests.post(reply_url, json=payload)
 
-            elif text in ["/stop", "/pause", "stop", "pause"]:
-                chat_title = message.get("chat", {}).get("title") or message.get("chat", {}).get("first_name") or f"Group {chat_id}"
+            elif cmd in ["/stop", "/pause", "stop", "pause", "توقف", "قطع"] or text in ["/stop", "/pause", "stop", "pause", "توقف", "قطع"]:
+                chat_obj = msg.get("chat", {}) if msg else {}
+                chat_title = chat_obj.get("title") or chat_obj.get("first_name") or f"Group {chat_id}"
                 if chat_id:
                     db.update_chat_selection(chat_id, False, title=chat_title, platform="telegram")
-                db.add_log(f"Telegram command /stop received for chat {chat_id} (per-chat stop).", level="WARNING")
+                db.add_log(f"Telegram command /stop received for chat {chat_id} ({chat_title}).", level="WARNING")
                 
                 reply_url = get_tg_url(bot_token, "sendMessage")
                 reply_text = "⏹️ <b>Broadcast stopped for this chat only (other chats remain active).</b>"
@@ -365,7 +369,8 @@ def process_telegram_commands(bot_token: str):
 
 
 
-            elif text in ["/send", "/force", "send", "force"]:
+
+            elif cmd in ["/send", "/force", "send", "force", "ارسال"] or text in ["/send", "/force", "send", "force", "ارسال"]:
                 current_settings = db.get_settings()
                 session_id = current_settings.get("instagram_session_id", "")
                 username = current_settings.get("instagram_username", "")
@@ -395,7 +400,7 @@ def process_telegram_commands(bot_token: str):
                     if msg_id: payload["reply_to_message_id"] = msg_id
                     requests.post(reply_url, json=payload)
 
-            elif text in ["/skip", "/skiprest", "skip"]:
+            elif cmd in ["/skip", "/skiprest", "skip", "عبور", "لغو"] or text in ["/skip", "/skiprest", "skip", "عبور", "لغو"]:
                 import random
                 from datetime import datetime, timedelta
                 now = datetime.now()
@@ -419,7 +424,7 @@ def process_telegram_commands(bot_token: str):
                 if msg_id: payload["reply_to_message_id"] = msg_id
                 requests.post(reply_url, json=payload)
 
-            elif text in ["/comments", "comments", "💬", "📝", "💭", "🙏"]:
+            elif cmd in ["/comments", "comments", "کامنت", "کامنت‌ها", "💬", "📝", "💭", "🙏"] or text in ["/comments", "comments", "کامنت", "کامنت‌ها", "💬", "📝", "💭", "🙏"]:
                 current_settings = db.get_settings()
                 session_id = current_settings.get("instagram_session_id", "")
                 reels = db.get_reels(limit=1, status="sent")
@@ -434,7 +439,7 @@ def process_telegram_commands(bot_token: str):
                     if msg_id: payload["reply_to_message_id"] = msg_id
                     requests.post(reply_url, json=payload)
 
-            elif text in ["/like", "like", "لایک", "❤️", "💖", "👍", "❤️‍🔥"]:
+            elif cmd in ["/like", "like", "لایک", "❤️", "💖", "👍", "❤️‍🔥"] or text in ["/like", "like", "لایک", "❤️", "💖", "👍", "❤️‍🔥"]:
                 current_settings = db.get_settings()
                 session_id = current_settings.get("instagram_session_id", "")
                 reels = db.get_reels(limit=1, status="sent")
@@ -458,7 +463,8 @@ def process_telegram_commands(bot_token: str):
                     if msg_id: payload["reply_to_message_id"] = msg_id
                     requests.post(reply_url, json=payload)
 
-            elif text in ["/status", "status"]:
+            elif cmd in ["/status", "status", "وضعیت"] or text in ["/status", "status", "وضعیت"]:
+
                 current_settings = db.get_settings()
                 is_on = current_settings.get("auto_send_enabled") == "true"
                 state = current_settings.get("burst_mode_state", "active")

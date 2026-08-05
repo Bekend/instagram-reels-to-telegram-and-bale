@@ -318,13 +318,15 @@ def process_bale_commands(bot_token: str):
             if not text:
                 continue
                 
-            if text in ["/help", "help", "راهنما"]:
+            cmd = text.split()[0].split("@")[0].strip().lower() if text else ""
+                
+            if cmd in ["/help", "help", "راهنما"]:
                 reply_url = get_bale_url(bot_token, "sendMessage")
                 help_text = (
                     "📖 <b>راهنمای دستورات ربات (Bale & Telegram Bot Help)</b>\n\n"
                     "• <b>دکمه‌های شیشه‌ای</b>: کلیک روی دکمه ❤️ لایک یا 💬 ۱۰ کامنت برتر زیر هر ویدیو\n"
                     "• <b>/begin</b> یا <code>شروع</code>: روشن کردن ارسال خودکار و جستجوی ریلز\n"
-                    "• <b>/stop</b> یا <code>توقف</code>: توقف کامل ارسال خودکار و جستجو\n"
+                    "• <b>/stop</b> یا <code>توقف</code>: توقف ارسال خودکار برای این چت/گروه\n"
                     "• <b>/send</b> یا <code>ارسال</code>: ارسال فوری یک ریلز جدید به گروه/کانال\n"
                     "• <b>/skip</b> یا <code>عبور</code>: لغو زمان استراحت و شروع ارسال فعال\n"
                     "• <b>/comments</b> یا <code>کامنت</code> یا ری‌اکشن 🙏: دریافت ۱۰ کامنت برتر واقعی پست\n"
@@ -336,12 +338,13 @@ def process_bale_commands(bot_token: str):
                 if msg_id: payload["reply_to_message_id"] = msg_id
                 requests.post(reply_url, json=payload)
 
-            elif text in ["/begin", "/start", "begin", "start", "شروع"]:
+            elif cmd in ["/begin", "/start", "begin", "start", "شروع"] or text in ["/begin", "/start", "begin", "start", "شروع"]:
                 db.update_settings({"auto_send_enabled": "true"})
-                chat_title = message.get("chat", {}).get("title") or message.get("chat", {}).get("first_name") or f"Group {chat_id}"
+                chat_obj = msg.get("chat", {}) if msg else {}
+                chat_title = chat_obj.get("title") or chat_obj.get("first_name") or f"Group {chat_id}"
                 if chat_id:
                     db.update_chat_selection(chat_id, True, title=chat_title, platform="bale")
-                db.add_log(f"Bale command /begin received for chat {chat_id}.", level="SUCCESS")
+                db.add_log(f"Bale command /begin received for chat {chat_id} ({chat_title}).", level="SUCCESS")
                 
                 reply_url = get_bale_url(bot_token, "sendMessage")
                 reply_text = "✅ <b>ارسال به این چت/گروه فعال شد</b>"
@@ -349,11 +352,12 @@ def process_bale_commands(bot_token: str):
                 if msg_id: payload["reply_to_message_id"] = msg_id
                 requests.post(reply_url, json=payload)
 
-            elif text in ["/stop", "/pause", "stop", "pause", "توقف", "قطع"]:
-                chat_title = message.get("chat", {}).get("title") or message.get("chat", {}).get("first_name") or f"Group {chat_id}"
+            elif cmd in ["/stop", "/pause", "stop", "pause", "توقف", "قطع"] or text in ["/stop", "/pause", "stop", "pause", "توقف", "قطع"]:
+                chat_obj = msg.get("chat", {}) if msg else {}
+                chat_title = chat_obj.get("title") or chat_obj.get("first_name") or f"Group {chat_id}"
                 if chat_id:
                     db.update_chat_selection(chat_id, False, title=chat_title, platform="bale")
-                db.add_log(f"Bale command /stop received for chat {chat_id} (per-chat stop).", level="WARNING")
+                db.add_log(f"Bale command /stop received for chat {chat_id} ({chat_title}).", level="WARNING")
                 
                 reply_url = get_bale_url(bot_token, "sendMessage")
                 reply_text = "⏹️ <b>ارسال به این گروه/کانال متوقف شد (چت‌های دیگر فعال می‌مانند)</b>"
@@ -363,7 +367,8 @@ def process_bale_commands(bot_token: str):
 
 
 
-            elif text in ["/send", "/force", "send", "force", "ارسال"]:
+
+            elif cmd in ["/send", "/force", "send", "force", "ارسال"] or text in ["/send", "/force", "send", "force", "ارسال"]:
                 current_settings = db.get_settings()
                 session_id = current_settings.get("instagram_session_id", "")
                 username = current_settings.get("instagram_username", "")
@@ -393,7 +398,7 @@ def process_bale_commands(bot_token: str):
                     if msg_id: payload["reply_to_message_id"] = msg_id
                     requests.post(reply_url, json=payload)
 
-            elif text in ["/skip", "/skiprest", "skip", "عبور", "لغو"]:
+            elif cmd in ["/skip", "/skiprest", "skip", "عبور", "لغو"] or text in ["/skip", "/skiprest", "skip", "عبور", "لغو"]:
                 import random
                 from datetime import datetime, timedelta
                 now = datetime.now()
@@ -417,7 +422,7 @@ def process_bale_commands(bot_token: str):
                 if msg_id: payload["reply_to_message_id"] = msg_id
                 requests.post(reply_url, json=payload)
 
-            elif text in ["/comments", "comments", "کامنت", "کامنت‌ها", "💬", "📝", "💭", "🙏"]:
+            elif cmd in ["/comments", "comments", "کامنت", "کامنت‌ها", "💬", "📝", "💭", "🙏"] or text in ["/comments", "comments", "کامنت", "کامنت‌ها", "💬", "📝", "💭", "🙏"]:
                 current_settings = db.get_settings()
                 session_id = current_settings.get("instagram_session_id", "")
                 reels = db.get_reels(limit=1, status="sent")
@@ -432,7 +437,7 @@ def process_bale_commands(bot_token: str):
                     if msg_id: payload["reply_to_message_id"] = msg_id
                     requests.post(reply_url, json=payload)
 
-            elif text in ["/like", "like", "لایک", "❤️", "💖", "👍", "❤️‍🔥"]:
+            elif cmd in ["/like", "like", "لایک", "❤️", "💖", "👍", "❤️‍🔥"] or text in ["/like", "like", "لایک", "❤️", "💖", "👍", "❤️‍🔥"]:
                 current_settings = db.get_settings()
                 session_id = current_settings.get("instagram_session_id", "")
                 reels = db.get_reels(limit=1, status="sent")
@@ -456,7 +461,8 @@ def process_bale_commands(bot_token: str):
                     if msg_id: payload["reply_to_message_id"] = msg_id
                     requests.post(reply_url, json=payload)
 
-            elif text in ["/status", "status", "وضعیت"]:
+            elif cmd in ["/status", "status", "وضعیت"] or text in ["/status", "status", "وضعیت"]:
+
                 current_settings = db.get_settings()
                 is_on = current_settings.get("auto_send_enabled") == "true"
                 state = current_settings.get("burst_mode_state", "active")
