@@ -116,7 +116,25 @@ def fetch_and_store_reels(limit: int = 16) -> int:
         db.add_log(f"Error fetching reels: {str(e)}", level="ERROR")
         return 0
 
-
+def get_active_target_chats(platform_name: str) -> List[str]:
+    """Resolves active target chats for bale or telegram, strictly respecting per-chat /stop (selected = 0)."""
+    settings = db.get_settings()
+    send_to_all = settings.get("send_to_all_groups", "false") == "true"
+    
+    known = db.get_known_chats(platform=platform_name)
+    stopped_ids = {str(c["chat_id"]) for c in known if c.get("selected") == 0}
+    
+    if send_to_all:
+        targets = [str(c["chat_id"]) for c in known if c.get("selected") == 1]
+    else:
+        cfg_key = f"{platform_name}_chat_ids"
+        configured = [c.strip() for c in settings.get(cfg_key, "").split(",") if c.strip()]
+        targets = [cid for cid in configured if cid not in stopped_ids]
+        if not targets:
+            targets = [str(c["chat_id"]) for c in known if c.get("selected") == 1]
+        
+    final_targets = [cid for cid in targets if cid not in stopped_ids]
+    return list(dict.fromkeys(final_targets))
 
 def process_command_polling():
     """Polls /begin, /stop, /status commands from both Bale and Telegram."""
@@ -141,7 +159,6 @@ def process_scheduler_tick():
     bale_token = settings.get("bale_bot_token", "")
     tg_token = settings.get("telegram_bot_token", "")
     platform = settings.get("target_platform", "bale")
-    send_to_all = settings.get("send_to_all_groups", "false") == "true"
     send_mode = settings.get("send_mode", "video_file")
     
     now = datetime.now()
@@ -179,24 +196,32 @@ def process_scheduler_tick():
     rest_end = datetime.fromisoformat(rest_end_str) if rest_end_str else None
     next_send = datetime.fromisoformat(next_send_str) if next_send_str else None
     
-    if not burst_end:
-        duration = random.randint(burst_min, burst_max)
-        burst_end = now + timedelta(minutes=duration)
-        db.update_settings({"burst_mode_state": "active", "burst_end_time": burst_end.isoformat()})
-        db.add_log(f"Active Burst initialized: running for {duration} mins (until {burst_end.strftime('%H:%M:%S')})", level="INFO")
+    # State Machine Evaluation
+    if not burst_end and not rest_end:
+        burst_duration = random.randint(burst_min, burst_max)
+        burst_end = now + timedelta(minutes=burst_duration)
         state = "active"
+        db.update_settings({
+            "burst_mode_state": "active",
+            "burst_end_time": burst_end.isoformat(),
+            "rest_end_time": ""
+        })
+        db.add_log(f"Initialized Burst Mode state. Active Burst for {burst_duration} mins.", level="INFO")
 
-    # State Machine
     if state == "active":
-        if now >= burst_end:
+        if burst_end and now >= burst_end:
             rest_duration = random.randint(rest_min, rest_max)
             new_rest_end = now + timedelta(minutes=rest_duration)
             db.update_settings({
                 "burst_mode_state": "resting",
-                "rest_end_time": new_rest_end.isoformat()
+                "rest_end_time": new_rest_end.isoformat(),
+                "next_send_time": ""
             })
-            db.add_log(f"😴 Active Burst completed! Resting for {rest_duration} mins (until {new_rest_end.strftime('%H:%M:%S')}).", level="INFO")
+            db.add_log(f"☕ Active Burst complete! Entering Rest Break for {rest_duration} mins.", level="INFO")
             return
+        elif now >= burst_end:
+             # Fallback if state logic somehow gets desynced
+             pass
     elif state == "resting":
         if rest_end and now >= rest_end:
             burst_duration = random.randint(burst_min, burst_max)
@@ -235,18 +260,10 @@ def process_scheduler_tick():
         targets_tg = []
         
         if platform in ["bale", "both"] and bale_token:
-            if send_to_all:
-                known = db.get_known_chats(platform="bale")
-                targets_bale = [c["chat_id"] for c in known if c["selected"] == 1]
-            if not targets_bale:
-                targets_bale = [c.strip() for c in settings.get("bale_chat_ids", "").split(",") if c.strip()]
+            targets_bale = get_active_target_chats("bale")
 
         if platform in ["telegram", "both"] and tg_token:
-            if send_to_all:
-                known = db.get_known_chats(platform="telegram")
-                targets_tg = [c["chat_id"] for c in known if c["selected"] == 1]
-            if not targets_tg:
-                targets_tg = [c.strip() for c in settings.get("telegram_chat_ids", "").split(",") if c.strip()]
+            targets_tg = get_active_target_chats("telegram")
                 
         sent_any = False
         
@@ -445,18 +462,11 @@ def send_reel_now(reel_id: str):
     targets_tg = []
     
     if platform in ["bale", "both"] and bale_token:
-        if send_to_all:
-            known = db.get_known_chats(platform="bale")
-            targets_bale = [c["chat_id"] for c in known if c["selected"] == 1]
-        if not targets_bale:
-            targets_bale = [c.strip() for c in settings.get("bale_chat_ids", "").split(",") if c.strip()]
+        targets_bale = get_active_target_chats("bale")
 
     if platform in ["telegram", "both"] and tg_token:
-        if send_to_all:
-            known = db.get_known_chats(platform="telegram")
-            targets_tg = [c["chat_id"] for c in known if c["selected"] == 1]
-        if not targets_tg:
-            targets_tg = [c.strip() for c in settings.get("telegram_chat_ids", "").split(",") if c.strip()]
+        targets_tg = get_active_target_chats("telegram")
+
 
     for cid in targets_bale:
         s, m = bale.send_reel(bale_token, cid, target, send_mode=send_mode, session_id=session_id)

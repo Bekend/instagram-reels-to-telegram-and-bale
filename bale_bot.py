@@ -338,8 +338,9 @@ def process_bale_commands(bot_token: str):
 
             elif text in ["/begin", "/start", "begin", "start", "شروع"]:
                 db.update_settings({"auto_send_enabled": "true"})
+                chat_title = message.get("chat", {}).get("title") or message.get("chat", {}).get("first_name") or f"Group {chat_id}"
                 if chat_id:
-                    db.update_chat_selection(chat_id, True)
+                    db.update_chat_selection(chat_id, True, title=chat_title, platform="bale")
                 db.add_log(f"Bale command /begin received for chat {chat_id}.", level="SUCCESS")
                 
                 reply_url = get_bale_url(bot_token, "sendMessage")
@@ -349,8 +350,9 @@ def process_bale_commands(bot_token: str):
                 requests.post(reply_url, json=payload)
 
             elif text in ["/stop", "/pause", "stop", "pause", "توقف", "قطع"]:
+                chat_title = message.get("chat", {}).get("title") or message.get("chat", {}).get("first_name") or f"Group {chat_id}"
                 if chat_id:
-                    db.update_chat_selection(chat_id, False)
+                    db.update_chat_selection(chat_id, False, title=chat_title, platform="bale")
                 db.add_log(f"Bale command /stop received for chat {chat_id} (per-chat stop).", level="WARNING")
                 
                 reply_url = get_bale_url(bot_token, "sendMessage")
@@ -358,6 +360,7 @@ def process_bale_commands(bot_token: str):
                 payload = {"chat_id": chat_id, "text": reply_text, "parse_mode": "HTML"}
                 if msg_id: payload["reply_to_message_id"] = msg_id
                 requests.post(reply_url, json=payload)
+
 
 
             elif text in ["/send", "/force", "send", "force", "ارسال"]:

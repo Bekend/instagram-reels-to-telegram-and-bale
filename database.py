@@ -143,11 +143,20 @@ def add_known_chat(chat_id: str, title: str, platform: str = "bale", chat_type: 
         """, (str(chat_id), title or f"Group {chat_id}", platform, chat_type))
         conn.commit()
 
-def update_chat_selection(chat_id: str, selected: bool):
+def update_chat_selection(chat_id: str, selected: bool, title: str = "", platform: str = "bale"):
+    if not chat_id:
+        return
     with get_connection() as conn:
         cursor = conn.cursor()
-        cursor.execute("UPDATE known_chats SET selected = ? WHERE chat_id = ?", (1 if selected else 0, str(chat_id)))
+        cursor.execute("""
+            INSERT INTO known_chats (chat_id, title, platform, selected, last_seen)
+            VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(chat_id) DO UPDATE SET
+                selected = excluded.selected,
+                last_seen = CURRENT_TIMESTAMP
+        """, (str(chat_id), title or f"Chat {chat_id}", platform, 1 if selected else 0))
         conn.commit()
+
 
 def get_known_chats(platform: Optional[str] = None) -> List[Dict[str, Any]]:
     with get_connection() as conn:
