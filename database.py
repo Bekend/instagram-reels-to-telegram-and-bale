@@ -216,8 +216,27 @@ def clear_reels_history():
         cursor.execute("DELETE FROM reels_history")
         conn.commit()
 
-def mark_reel_status(reel_id: str, status: str):
+def purge_blank_reels():
+    """Purges any un-enriched placeholder reels without thumbnails or author handles."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM reels_history WHERE (thumbnail_url = '' OR thumbnail_url IS NULL OR author = '@viral_reels') AND status = 'discovered'")
+        conn.commit()
 
+def update_reel_metadata(reel_id: str, thumbnail_url: str = "", author: str = "", caption: str = ""):
+    """Updates metadata for an existing reel record."""
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("""
+            UPDATE reels_history 
+            SET thumbnail_url = CASE WHEN ? != '' THEN ? ELSE thumbnail_url END,
+                author = CASE WHEN ? != '' THEN ? ELSE author END,
+                caption = CASE WHEN ? != '' THEN ? ELSE caption END
+            WHERE reel_id = ?
+        """, (thumbnail_url, thumbnail_url, author, author, caption, caption, reel_id))
+        conn.commit()
+
+def mark_reel_status(reel_id: str, status: str):
     with get_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("""
@@ -226,6 +245,7 @@ def mark_reel_status(reel_id: str, status: str):
             WHERE reel_id = ?
         """, (status, status, reel_id))
         conn.commit()
+
 
 def get_reel_by_id(reel_id: str) -> Optional[Dict[str, Any]]:
     """Retrieves a specific reel from the database by its reel_id."""

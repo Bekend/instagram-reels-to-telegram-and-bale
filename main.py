@@ -445,8 +445,10 @@ def sync_now():
 
 
 @app.get("/api/reels")
-def list_reels(limit: int = 50, status: Optional[str] = None):
+def get_reels_endpoint(limit: int = 50, status: Optional[str] = None):
+    db.purge_blank_reels()
     return db.get_reels(limit=limit, status=status)
+
 
 from fastapi.responses import FileResponse, JSONResponse
 
