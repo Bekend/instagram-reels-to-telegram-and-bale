@@ -184,33 +184,8 @@ def send_reel(bot_token: str, chat_id: str, reel: Dict[str, Any], send_mode: str
         except Exception as e:
             print(f"Error uploading video to Telegram: {e}")
 
-    # Send Photo Thumbnail if video payload fails
-    if thumbnail_url:
-        try:
-            r_img = requests.get(thumbnail_url, headers=headers, timeout=20)
-            if r_img.status_code == 200 and len(r_img.content) > 1000:
-                send_photo_endpoint = get_tg_url(bot_token, "sendPhoto")
-                payload = {"chat_id": chat_id, "caption": formatted_caption, "parse_mode": "HTML", "reply_markup": reply_markup}
-                files = {"photo": ("thumb.jpg", r_img.content, "image/jpeg")}
-                r_send = requests.post(send_photo_endpoint, data=payload, files=files, timeout=40)
-                if r_send.json().get("ok"):
-                    return True, "Post thumbnail sent to Telegram Channel/Group!"
-        except Exception as e:
-            print(f"Error sending photo fallback to Telegram: {e}")
+    return False, f"Skipped reel {reel_id}: Video MP4 file not ready for Telegram."
 
-    # Send HTML Card Message if media bytes download failed
-    if url or formatted_caption:
-        try:
-            send_msg_endpoint = get_tg_url(bot_token, "sendMessage")
-            msg_text = f"<b>{html.escape(author)}</b>\n{formatted_caption}\n\n🔗 <a href='{url}'>View Reel on Instagram</a>" if url else f"<b>{html.escape(author)}</b>\n{formatted_caption}"
-            payload = {"chat_id": chat_id, "text": msg_text, "parse_mode": "HTML", "reply_markup": reply_markup, "disable_web_page_preview": False}
-            r_msg = requests.post(send_msg_endpoint, json=payload, timeout=20)
-            if r_msg.json().get("ok"):
-                return True, "Reel card sent to Telegram Channel/Group!"
-        except Exception as e:
-            print(f"Error sending message fallback: {e}")
-
-    return False, f"Failed to deliver reel {reel_id} to chat {chat_id}"
 
 
 def process_telegram_commands(bot_token: str):
