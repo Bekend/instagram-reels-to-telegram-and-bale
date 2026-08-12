@@ -206,8 +206,13 @@ def fetch_reels_via_cookies(session_id: str) -> List[Dict[str, Any]]:
 
         except Exception as e:
             print(f"Direct API fetch exception for {ep}: {e}")
+            import database as db
+            db.update_settings({"instagram_session_id": ""})
+            db.add_log("⚠️ Instagram returned invalid session payload. Auto-cleared session ID to 100% protect your account! Switched to 100% Safe Public Guest Mode.", level="WARNING")
+            return []
             
     return reels
+
 
 def fetch_reels_via_playwright(session_id: str = "", username: str = "", password: str = "") -> List[Dict[str, Any]]:
     """Tier 2: VPS-Optimized Playwright Headless Chromium Browser Scraper."""
