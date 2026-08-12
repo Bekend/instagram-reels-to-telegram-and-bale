@@ -75,8 +75,9 @@ def init_db():
         defaults = {
             "target_platform": "both", # 'bale', 'telegram', or 'both'
             "dashboard_auth_enabled": "true",
-            "dashboard_username": "admin",
-            "dashboard_password": "admin123",
+            "dashboard_username": "shahab",
+            "dashboard_password": "5584",
+
             "bale_bot_token": "",
             "bale_chat_ids": "",
             "bale_last_update_id": "0",
