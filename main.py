@@ -296,9 +296,10 @@ def process_scheduler_tick():
 
 def setup_scheduler():
     scheduler.remove_all_jobs()
-    scheduler.add_job(process_scheduler_tick, 'interval', seconds=15, id="ig_tick_job")
-    scheduler.add_job(process_command_polling, 'interval', seconds=5, id="command_poll_job")
+    scheduler.add_job(process_scheduler_tick, 'interval', seconds=15, id="ig_tick_job", max_instances=3, misfire_grace_time=30)
+    scheduler.add_job(process_command_polling, 'interval', seconds=5, id="command_poll_job", max_instances=3, misfire_grace_time=15)
     db.add_log("Scheduler active: Polling Bale/Telegram commands (/begin, /stop) & processing broadcasts.", level="INFO")
+
 
 @app.on_event("startup")
 def startup_event():
