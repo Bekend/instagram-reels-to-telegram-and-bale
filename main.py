@@ -110,8 +110,17 @@ def fetch_and_store_reels(limit: int = 16) -> int:
                 added += 1
                 if added >= limit:
                     break
+
+        if added == 0 and reels:
+            for r in reels:
+                if db.add_reel(r):
+                    added += 1
+                    if added >= limit:
+                        break
+
         db.add_log(f"Queued {added} new Reels in database.", level="SUCCESS")
         return added
+
     except Exception as e:
         db.add_log(f"Error fetching reels: {str(e)}", level="ERROR")
         return 0
