@@ -333,6 +333,44 @@ def fetch_reels_via_playwright(session_id: str = "", username: str = "", passwor
         
     return reels
 
+def enrich_reel_metadata(reel: Dict[str, Any]) -> Dict[str, Any]:
+    """Enriches a Reel object with real HD thumbnail image URL, real author handle, and real caption text via Embed API."""
+    code = reel.get("reel_id", "")
+    if not code:
+        return reel
+        
+    embed_url = f"https://www.instagram.com/p/{code}/embed/captioned/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.0 Mobile/15E148 Safari/604.1"
+    }
+    try:
+        import html
+        r = requests.get(embed_url, headers=headers, timeout=5)
+        if r.status_code == 200:
+            text = r.text
+            
+            imgs = re.findall(r'src="([^"]+t51\.[^"]+\.jpg[^"]*)"', text)
+            if not imgs:
+                imgs = re.findall(r'src="([^"]+\.jpg[^"]*)"', text)
+            if imgs:
+                reel["thumbnail_url"] = html.unescape(imgs[0]).replace('&amp;', '&')
+                
+            authors = re.findall(r'instagram\.com/([^/\?"\'\s]+)/', text)
+            ignore = {'p', 'reel', 'explore', 'static', 'legal', 'about', 'privacy', 'terms', 'embed', 'rsrc.php'}
+            author_clean = [a for a in authors if a.lower() not in ignore]
+            if author_clean:
+                reel["author"] = f"@{author_clean[0]}"
+                
+            captions = re.findall(r'class="Caption"[^>]*>(.*?)</div>', text, re.DOTALL)
+            if captions:
+                clean = re.sub(r'<[^>]+>', '', captions[0]).strip()
+                if clean:
+                    reel["caption"] = html.unescape(clean)
+    except Exception as e:
+        print(f"Metadata enrichment exception for {code}: {e}")
+        
+    return reel
+
 def fetch_fallback_public_reels() -> List[Dict[str, Any]]:
     """Tier 3: Stealth Public Guest Mode (100% Account Safe, Real Published Reels)."""
     reels = []
@@ -387,7 +425,12 @@ def fetch_fallback_public_reels() -> List[Dict[str, Any]]:
                 "media_type": "video",
                 "media_list": "[]"
             })
-    return reels
+
+    enriched = []
+    for r in reels:
+        enriched.append(enrich_reel_metadata(r))
+    return enriched
+
 
 
 
