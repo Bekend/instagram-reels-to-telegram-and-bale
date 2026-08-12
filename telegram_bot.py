@@ -103,7 +103,9 @@ def send_reel(bot_token: str, chat_id: str, reel: Dict[str, Any], send_mode: str
     
     reel_id = reel.get("reel_id", "")
     url = reel.get("url", "")
+    author = reel.get("author", "@instagram_creator")
     caption = reel.get("caption", "").strip()
+
     thumbnail_url = reel.get("thumbnail_url", "")
     video_url = reel.get("video_url", "")
     media_type = reel.get("media_type", "video")
