@@ -83,7 +83,16 @@ def extract_direct_video_url_with_playwright(reel_url: str, session_id: str = ""
     try:
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True, args=["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"])
+            browser = p.chromium.launch(
+                headless=True,
+                args=[
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--single-process"
+                ]
+            )
             context = browser.new_context(
                 user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
             )
@@ -95,28 +104,43 @@ def extract_direct_video_url_with_playwright(reel_url: str, session_id: str = ""
                     "path": "/"
                 }])
             page = context.new_page()
-            page.goto(reel_url, wait_until="domcontentloaded", timeout=20000)
-            page.wait_for_timeout(4000)
             
-            html_content = page.content()
-            urls = re.findall(r'https:\\/\\/scontent[^\s"\']+\.mp4[^\s"\']*', html_content)
-            if not urls:
-                urls = re.findall(r'https://scontent[^\s"\']+\.mp4[^\s"\']*', html_content)
+            def handle_resp(res):
+                nonlocal video_url
+                u = res.url
+                ct = res.headers.get("content-type", "")
+                if ("video" in ct or ".mp4" in u or "bytestream" in ct) and len(u) > 50 and "blob:" not in u:
+                    if not video_url or len(u) > len(video_url):
+                        video_url = u
+                        
+            page.on("response", handle_resp)
+            try:
+                page.goto(reel_url, wait_until="domcontentloaded", timeout=18000)
+                page.wait_for_timeout(3500)
+            except Exception:
+                pass
                 
-            cleaned_urls = []
-            for u in urls:
-                c = u.split('<')[0].split(r'\u003C')[0]
-                c = c.replace('&amp;', '&').replace(r'\u00253D', '=').replace('\\/', '/').replace(r'\u0026', '&')
-                if len(c) > 50:
-                    cleaned_urls.append(c)
+            if not video_url:
+                html_content = page.content()
+                urls = re.findall(r'https:\\/\\/scontent[^\s"\']+\.mp4[^\s"\']*', html_content)
+                if not urls:
+                    urls = re.findall(r'https://scontent[^\s"\']+\.mp4[^\s"\']*', html_content)
+                cleaned_urls = []
+                for u in urls:
+                    c = u.split('<')[0].split(r'\u003C')[0]
+                    c = c.replace('&amp;', '&').replace(r'\u00253D', '=').replace('\\/', '/').replace(r'\u0026', '&')
+                    if len(c) > 50:
+                        cleaned_urls.append(c)
+                if cleaned_urls:
+                    cleaned_urls.sort(key=len, reverse=True)
+                    video_url = cleaned_urls[0]
                     
-            if cleaned_urls:
-                cleaned_urls.sort(key=len, reverse=True)
-                video_url = cleaned_urls[0]
             browser.close()
     except Exception as e:
         print(f"Failed to extract direct MP4 URL via Playwright: {e}")
+        
     return video_url
+
 
 def parse_media_item(media: dict) -> Dict[str, Any]:
     """Extracts single video, single image, or carousel sidecar album from Instagram Media object."""
